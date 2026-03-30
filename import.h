@@ -3,8 +3,7 @@
 
 #include "struct.h"
 
-char import_val(char filename);
+Edge* import_from_file(char* filename, int* edge_count);
 
-Graph* import_graph_from_file(const char *filename)
-
+void free_edges(Edge* edges, int edge_count);
 #endif
