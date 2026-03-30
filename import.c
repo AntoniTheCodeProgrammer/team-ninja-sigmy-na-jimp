@@ -28,6 +28,7 @@ Edge* import_from_file(char* filename, int* edge_count) {
         count++;
     }
 
+    
     fclose(f);
     *edge_count = count;
     return edges;
