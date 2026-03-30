@@ -15,6 +15,8 @@ typedef struct{
     Point * vertex_a;
     Point * vertex_b;
     double weight;
+    char* name;
+    
 }Edge;
 
 #endif
