@@ -1,21 +1,20 @@
 #ifndef STRUCT_H
 #define STRUCT_H
 
-struct Cordinates{
-    float x;
-    float y;
-};
+typedef struct {
+    double x;
+    double y;
+}Cordinates;
 
-struct Vertex{
-    int name;
+typedef struct {
+    int id;
     Cordinates position;
-};
+}Point;
 
-struct Egde{
-    char* name;
-    int vertex_a;
-    int vertex_b;
-    float weight;
-};
+typedef struct{
+    Point * vertex_a;
+    Point * vertex_b;
+    double weight;
+}Edge;
 
 #endif
