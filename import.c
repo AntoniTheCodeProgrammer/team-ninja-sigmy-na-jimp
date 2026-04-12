@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "import.h"
 
 Edge* import_from_file(char* filename, int* edge_count) {

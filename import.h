@@ -2,6 +2,9 @@
 #define IMPORT_H 
 
 #include "struct.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 Edge* import_from_file(char* filename, int* edge_count);
 
