@@ -1,7 +1,6 @@
 #ifndef EXTRACTION_H
 #define EXTRACTION_H
 
-#include <stddef.h>
 #include "struct.h"
 #include <stdio.h>
 

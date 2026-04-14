@@ -9,14 +9,14 @@ typedef struct {
 typedef struct {
     int id;
     Cordinates position;
+    Cordinates velocity;
 }Point;
 
 typedef struct{
-    Point * vertex_a;
-    Point * vertex_b;
+    int vertex_a;
+    int vertex_b;
     double weight;
     char* name;
-    
 }Edge;
 
 #endif
