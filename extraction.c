@@ -1,4 +1,4 @@
-#include "Extraction.h"
+#include "extraction.h"
 
 int save_to_text(char *filename, Point *points, int count) {
     FILE *file;
