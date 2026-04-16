@@ -3,6 +3,7 @@
 void algorithm(Point *points, Edge *edges, int point_count, int edge_count) {
     // Siła zmiany
     double temperature = 1.0;
+    Point *velocities = malloc(sizeof(Point) * point_count);
 
     // losowe rozmieszczenie punktów
     for (int i = 0; i < point_count; i++) {
@@ -14,8 +15,8 @@ void algorithm(Point *points, Edge *edges, int point_count, int edge_count) {
     for (int iter = 0; iter < 100; iter++) {
         // zerowanie prędkości
         for (int i = 0; i < point_count; i++) {
-            points[i].velocity.x = 0;
-            points[i].velocity.y = 0;
+            velocities[i].position.x = 0;
+            velocities[i].position.y = 0;
         }
 
         // siły odpychania
@@ -33,8 +34,8 @@ void algorithm(Point *points, Edge *edges, int point_count, int edge_count) {
                 double force = 10.0 / distance;
 
                 // zmiana wektora siły
-                points[i].velocity.x += force * dx / distance;
-                points[i].velocity.y += force * dy / distance;
+                velocities[i].position.x += force * dx / distance;
+                velocities[i].position.y += force * dy / distance;
             }
         }
 
@@ -52,26 +53,26 @@ void algorithm(Point *points, Edge *edges, int point_count, int edge_count) {
             double force = (distance - edges[i].weight) * -0.1;
 
             // zmiana wektora siły
-            points[edges[i].vertex_a].velocity.x += force * dx / distance;
-            points[edges[i].vertex_a].velocity.y += force * dy / distance;
-            points[edges[i].vertex_b].velocity.x -= force * dx / distance;
-            points[edges[i].vertex_b].velocity.y -= force * dy / distance;
+            velocities[edges[i].vertex_a].position.x += force * dx / distance;
+            velocities[edges[i].vertex_a].position.y += force * dy / distance;
+            velocities[edges[i].vertex_b].position.x -= force * dx / distance;
+            velocities[edges[i].vertex_b].position.y -= force * dy / distance;
         }
 
         // aktualizacja pozycji punktów
         for (int i = 0; i < point_count; i++) {
             // prędkość punktu
-            float v = sqrt(points[i].velocity.x * points[i].velocity.x + points[i].velocity.y * points[i].velocity.y); 
+            float v = sqrt(velocities[i].position.x * velocities[i].position.x + velocities[i].position.y * velocities[i].position.y); 
           
             // ograniczenie prędkości
             if (v > temperature) {
-                points[i].velocity.x = points[i].velocity.x / v * temperature;
-                points[i].velocity.y = points[i].velocity.y / v * temperature;
+                velocities[i].position.x = velocities[i].position.x / v * temperature;
+                velocities[i].position.y = velocities[i].position.y / v * temperature;
             }
             
             // aktualizacja pozycji punktu
-            points[i].position.x += points[i].velocity.x;
-            points[i].position.y += points[i].velocity.y;
+            points[i].position.x += velocities[i].position.x;
+            points[i].position.y += velocities[i].position.y;
         }
 
         // zmniejszanie siły zmiany

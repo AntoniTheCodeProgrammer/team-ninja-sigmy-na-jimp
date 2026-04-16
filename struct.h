@@ -9,7 +9,6 @@ typedef struct {
 typedef struct {
     int id;
     Cordinates position;
-    Cordinates velocity;
 }Point;
 
 typedef struct{
