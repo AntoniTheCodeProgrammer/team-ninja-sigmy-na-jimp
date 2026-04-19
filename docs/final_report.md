@@ -1,7 +1,7 @@
 # Końcowa dokumentacja projektu
 
 ## 1. Cel projektu
-Wyznaczenie współrzędnych wierzchołków grafu (2D). Implementacja w C generuje plik wyjściowy (tekstowy lub binarny) zawierający współrzędne wierzchołków; plik ten może być przetworzony/zwizualizowany przez aplikację w Javie.
+Wyznaczenie współrzędnych wierzchołków grafu (2D), w najlepszym wypadku planarnie (algorytm nie gwarantuje planarności rysunku grafu). Implementacja w C generuje plik wyjściowy (tekstowy lub binarny) zawierający współrzędne wierzchołków; plik ten może być przetworzony/zwizualizowany przez aplikację w Javie.
 
 ## 2. Zrealizowane elementy
 - Parser pliku wejściowego w formacie listy krawędzi.
