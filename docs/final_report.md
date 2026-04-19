@@ -34,7 +34,3 @@ Wyznaczenie współrzędnych wierzchołków grafu (2D). Implementacja w C generu
 - Dodać opcje liniowe konfigurowalne (liczba iteracji, stałe sił, tryb zapisu, seed RNG).
 - Dodać jednostkowe testy parsera i zapisu oraz testy regresji wyników.
 
-## 7. Co dalej (sugestie rozwoju)
-- Dodanie alternatywnego algorytmu (np. spectral layout) do porównań.
-- Eksport do formatu JSON lub CSV dla łatwiejszej konsumpcji w innych narzędziach.
-- Interfejs CLI z większą liczbą opcji i komunikatami błędów (walidacja danych wejściowych).

@@ -76,8 +76,3 @@ typedef struct { int vertex_a; int vertex_b; double weight; char* name; } Edge;
 - `import_from_file` zwraca `NULL` przy błędzie otwarcia pliku lub braku danych.
 - Funkcje zapisu zwracają 0 w przypadku błędów plikowych.
 
-## 9. Ograniczenia / rekomendacje
-- Zastąpić stałe tablicowe dynamicznymi strukturami z `realloc`.
-- Dodać walidację ID i raport błędów dla nieprawidłowych linii.
-- Zwolnić pamięć `velocities` po zakończeniu algorytmu.
-- Dodać opcje CLI (seed RNG, iteracje, stałe sił).
