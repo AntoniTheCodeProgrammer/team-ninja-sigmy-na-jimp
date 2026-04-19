@@ -6,10 +6,10 @@ Autor: Jakub Madejski Antoni Żmłudzin Piotr Sikorski
 Dokumentacja implementacyjna opisuje szczegóły wewnętrzne programu, formaty plików wejściowych i wyjściowych, API modułów oraz uwagi potrzebne do implementacji części projektu w języku Java.
 
 ## 2. Kompilacja i uruchomienie
-- Kompilacja: `make` (w katalogu projektu).
+- Kompilacja: `make` 
 - Uruchomienie: `./program <input_file> <output_file> [text|binary]`
-  - `text` — zapis w formacie tekstowym.
-  - domyślnie (brak `text`) — zapis binarny.
+  - `text` : zapis w formacie tekstowym.
+  - domyślnie : zapis binarny.
 
 Przykład:
 
@@ -35,12 +35,12 @@ Uwagi:
 
 ## 4. Format wyjściowy
 
-- Tekstowy: każda linia: `<vertex_id> <x> <y>` (formatowane przez `fprintf` z formatem `"%d %.2g %.2g\n"`).
-- Binarny: dla każdego wierzchołka zapisane kolejno: `int id`, `double x`, `double y` (w natywnej reprezentacji C — endianness i rozmiary platformowe).
+- Tekstowy: każda linia: `<vertex_id> <x> <y>` (wartości x i y zaokrąglone są do 2 miejsc po przecinku).
+- Binarny: dla każdego wierzchołka zapisane kolejno: `int id`, `double x`, `double y`.
 
 Zalecenie: używaj formatu tekstowego do wymiany między różnymi językami/platformami.
 
-## 5. Struktury danych (plik `struct.h`)
+## 5. Struktury danych (`struct.h`)
 
 ```
 typedef struct { double x; double y; } Cordinates;
