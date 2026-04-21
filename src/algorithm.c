@@ -1,4 +1,4 @@
-#include "algorithm.h"
+#include "../include/algorithm.h"
 
 void algorithm(Point *points, Edge *edges, int point_count, int edge_count) {
     // Siła zmiany
