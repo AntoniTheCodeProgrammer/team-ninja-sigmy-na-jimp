@@ -1,4 +1,4 @@
-#include "import.h"
+#include "../include/import.h"
 
 Edge* import_from_file(char* filename, int* edge_count, int* point_count) {
     FILE *f;

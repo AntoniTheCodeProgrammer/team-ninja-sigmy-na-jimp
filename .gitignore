@@ -3,3 +3,4 @@
 program
 venv
 *.png
+build/

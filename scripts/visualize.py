@@ -7,7 +7,12 @@ def main():
         return
 
     in_file = sys.argv[1]
+    if '/' not in in_file:
+        in_file = f"input/{in_file}"
+        
     out_file = sys.argv[2]
+    if '/' not in out_file:
+        out_file = f"output/{out_file}"
 
     # Read edges
     edges = []

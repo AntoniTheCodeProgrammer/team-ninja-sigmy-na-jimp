@@ -1,9 +1,13 @@
 CC = gcc
-CFLAGS = -Wall -Wextra
+CFLAGS = -Wall -Wextra -Iinclude
 LDFLAGS = -lm
 
-SRCS = main.c algorithm.c import.c extraction.c
-OBJS = $(SRCS:.c=.o)
+SRC_DIR = src
+OBJ_DIR = build
+INC_DIR = include
+
+SRCS = $(wildcard $(SRC_DIR)/*.c)
+OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 TARGET = program
 
 all: $(TARGET)
@@ -11,10 +15,11 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-%.o: %.c
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
+	@mkdir -p $(OBJ_DIR)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -rf $(OBJ_DIR) $(TARGET) *.o
 
 .PHONY: all clean
