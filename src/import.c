@@ -10,14 +10,14 @@ Edge* import_from_file(char* filename, int* edge_count, int* point_count) {
         return NULL;
     }
 
-    Edge* edges = malloc(sizeof(Edge) * 100000);  // sprawdzic czy jest limit dlugosci w pliku
+    Edge* edges = malloc(sizeof(Edge) * 100000);  // max dlugosc 100000
     int count = 0;
     int max_id = 0;
 
     char temp_name[256];
     int id_A, id_B;
     double weight;
-    while (fscanf(f, "%255s %d %d %lf", temp_name, &id_A, &id_B, &weight) == 4) {
+    while (fscanf(f, "%255s %d %d %lf", temp_name, &id_A, &id_B, &weight) == 4) { // max dlugosc 255 wczytywanie danych jak nie bedzie odpowiedni typ to bedzie blad 
         edges[count].name = strdup(temp_name);
         edges[count].vertex_a = id_A;
         edges[count].vertex_b = id_B;
@@ -30,14 +30,14 @@ Edge* import_from_file(char* filename, int* edge_count, int* point_count) {
     
     fclose(f);
     *edge_count = count;
-    *point_count = max_id + 1;
-    return edges;
+    *point_count = max_id + 1; // licz liczbe punktow bioroac max id jakie zczyta z pliku
+    return edges; // zwraca tablice krawedzi 
 }
 
 void free_edges(Edge* edges, int edge_count) {
     if (!edges) return;
     for (int i = 0; i < edge_count; i++) {
-        free(edges[i].name);
+        free(edges[i].name); // sprzatanie pamieci 
     }
     free(edges);
 }
