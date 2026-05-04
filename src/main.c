@@ -24,15 +24,19 @@ int main(int argc, char **argv){
     // sprawdzanie czy z podanej sciezki odczytac czy dodac foldery
     char input_path[512];
     if (strchr(argv[1], '/') == NULL) {
+        // jesli nie ma '/' w sciezce to dopisuje przed 'input/'
         snprintf(input_path, sizeof(input_path), "input/%s", argv[1]);
     } else {
+        // jesli jest to po prostu kopiuje
         strncpy(input_path, argv[1], sizeof(input_path));
     }
 
     char output_path[512];
     if (strchr(argv[2], '/') == NULL) {
+        // jesli nie ma '/' w sciezce to dopisuje przed 'output/'
         snprintf(output_path, sizeof(output_path), "output/%s", argv[2]);
     } else {
+        // jesli jest to po prostu kopiuje
         strncpy(output_path, argv[2], sizeof(output_path));
     }
 
