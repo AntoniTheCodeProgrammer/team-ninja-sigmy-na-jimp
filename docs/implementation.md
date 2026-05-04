@@ -61,7 +61,7 @@ typedef struct { int vertex_a; int vertex_b; double weight; char* name; } Edge;
   - Modyfikuje tablicę `points` (ustawia pozycje). Wejściowo `points` powinno mieć rozmiar `point_count`.
 
 - `int save_to_text(char *filename, Point *points, int count)` i `int save_to_binary(char *filename, Point *points, int count)`
-  - Funkcje zapisu wyników; zwracają 1 przy sukcesie, 0 przy błędzie.
+  - Funkcje zapisu wyników; zwracają 0 przy sukcesie, 1 przy błędzie.
 
 ## 7. Szczegóły implementacyjne algorytmu
 - Inicjalizacja losowych pozycji w zakresie [0,100].
