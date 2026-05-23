@@ -3,6 +3,7 @@
 #define CENTER_X 50.0
 #define CENTER_Y 50.0
 #define OUTER_RADIUS 40.0
+#define INNER_RADIUS 24.0
 #define PI 3.14159265358979323846
 
 static int valid_edge(Edge edge, int point_count) {
@@ -103,17 +104,44 @@ static int fill_degrees(Edge *edges, int point_count, int edge_count, int *degre
 }
 
 static int choose_boundary_vertices(int *degree, int point_count, int active_count, int *fixed) {
-    int boundary_count = active_count < 3 ? active_count : 3;
-    int chosen = 0;
+    int boundary_count;
 
-    for (int i = 0; i < point_count && chosen < boundary_count; i++) {
-        if (degree[i] > 0) {
-            fixed[i] = 1;
-            chosen++;
+    if (active_count <= 4) {
+        boundary_count = active_count;
+    } else {
+        boundary_count = (int)(sqrt((double)active_count) * 2.0);
+        if (boundary_count < 4) boundary_count = 4;
+        if (boundary_count > active_count) boundary_count = active_count;
+    }
+
+    // Pick boundary vertices spread across IDs. This is simple and gives a wider frame
+    // than taking only the first few vertices.
+    for (int k = 0; k < boundary_count; k++) {
+        int target_rank = boundary_count == 1 ? 0 : k * (active_count - 1) / (boundary_count - 1);
+        int rank = 0;
+
+        for (int i = 0; i < point_count; i++) {
+            if (degree[i] == 0) continue;
+            if (rank == target_rank) {
+                fixed[i] = 1;
+                break;
+            }
+            rank++;
         }
     }
 
     return boundary_count;
+}
+
+static void place_initial_positions(Point *points, int point_count, int *degree, int *fixed) {
+    for (int i = 0; i < point_count; i++) {
+        if (fixed[i] || degree[i] == 0) continue;
+
+        double angle = 2.0 * PI * i / (point_count == 0 ? 1 : point_count);
+        double radius = 8.0 + (i % 5) * (INNER_RADIUS / 5.0);
+        points[i].position.x = CENTER_X + radius * cos(angle);
+        points[i].position.y = CENTER_Y + radius * sin(angle);
+    }
 }
 
 static void place_boundary(Point *points, int point_count, int *fixed, int boundary_count) {
@@ -142,10 +170,6 @@ static void place_isolated_vertices(Point *points, int point_count, int *degree)
         points[i].position.y = 95.0 + (isolated / 8) * 10.0;
         isolated++;
     }
-
-    if (isolated > 0) {
-        fprintf(stderr, "Planar-friendly layout: %d isolated vertex/vertices placed separately.\n", isolated);
-    }
 }
 
 static int barycentric_layout(Point *points, Edge *edges, int point_count, int edge_count) {
@@ -167,7 +191,8 @@ static int barycentric_layout(Point *points, Edge *edges, int point_count, int e
     int valid_edges = fill_degrees(edges, point_count, edge_count, degree, &active_count);
 
     fprintf(stderr,
-            "Planar-friendly layout: simplified barycentric method, not a guaranteed planar embedding.\n");
+            "Barycentric Tutte-style layout: simplified planar-inspired layout; "
+            "crossing-free drawings are not guaranteed.\n");
 
     // This Euler check can only detect some definitely non-planar simple graphs.
     if (active_count >= 3 && valid_edges > 3 * active_count - 6) {
@@ -180,14 +205,12 @@ static int barycentric_layout(Point *points, Edge *edges, int point_count, int e
     }
 
     int boundary_count = choose_boundary_vertices(degree, point_count, active_count, fixed);
-    for (int i = 0; i < point_count; i++) {
-        points[i].position.x = CENTER_X + ((i % 5) - 2) * 3.0;
-        points[i].position.y = CENTER_Y + (((i / 5) % 5) - 2) * 3.0;
-    }
+    place_initial_positions(points, point_count, degree, fixed);
     place_boundary(points, point_count, fixed, boundary_count);
 
-    // Non-boundary vertices repeatedly move toward the average position of neighbors.
-    for (int iter = 0; iter < 300; iter++) {
+    // Non-boundary vertices move toward neighbor averages, but relaxation prevents
+    // them from collapsing as aggressively as pure averaging.
+    for (int iter = 0; iter < 180; iter++) {
         for (int i = 0; i < point_count; i++) {
             sum_x[i] = 0.0;
             sum_y[i] = 0.0;
@@ -209,8 +232,10 @@ static int barycentric_layout(Point *points, Edge *edges, int point_count, int e
         for (int i = 0; i < point_count; i++) {
             if (fixed[i] || degree[i] == 0) continue;
 
-            points[i].position.x = sum_x[i] / degree[i];
-            points[i].position.y = sum_y[i] / degree[i];
+            double avg_x = sum_x[i] / degree[i];
+            double avg_y = sum_y[i] / degree[i];
+            points[i].position.x = points[i].position.x * 0.4 + avg_x * 0.6;
+            points[i].position.y = points[i].position.y * 0.4 + avg_y * 0.6;
         }
     }
 

@@ -29,13 +29,24 @@ public class GraphApp extends JFrame {
     private final Graph graph = new Graph();
     private final GraphPanel graphPanel;
     private final JLabel statusLabel = new JLabel("Load a graph TXT file to begin.");
+    private JMenuItem loadCoordsTxtItem;
+    private JMenuItem loadCoordsBinItem;
+    private JMenuItem saveCoordsItem;
+    private JMenuItem forceItem;
+    private JMenuItem tutteItem;
+    private JButton loadTxtButton;
+    private JButton forceButton;
+    private JButton tutteButton;
+    private JButton saveButton;
     private File currentGraphFile;
+    private File pendingCoordinateFile;
+    private boolean pendingCoordinateBinary;
     private String coordinateStatus = "No coordinates loaded";
     private String algorithmStatus = "No algorithm run";
 
     public GraphApp() {
         setTitle("Graph Visualization - Java Viewer");
-        setSize(960, 680);
+        setSize(1200, 800);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
@@ -45,6 +56,7 @@ public class GraphApp extends JFrame {
         setupMenu();
         setupToolbar();
         setupStatusBar();
+        setGraphActionsEnabled(false);
     }
 
     private void setupMenu() {
@@ -55,11 +67,13 @@ public class GraphApp extends JFrame {
 
         JMenuItem loadGraphItem = new JMenuItem("Load graph (TXT)");
         loadGraphItem.addActionListener(e -> loadGraphTxt());
-        JMenuItem loadCoordsTxtItem = new JMenuItem("Load coordinates (TXT)");
+        loadCoordsTxtItem = new JMenuItem("Load coordinates (TXT)");
+        loadCoordsTxtItem.setToolTipText("Can be selected before a graph; it will be applied after graph loading.");
         loadCoordsTxtItem.addActionListener(e -> loadCoordsTxt());
-        JMenuItem loadCoordsBinItem = new JMenuItem("Load coordinates (BIN)");
+        loadCoordsBinItem = new JMenuItem("Load coordinates (BIN, optional)");
+        loadCoordsBinItem.setToolTipText("Optional platform-dependent C coordinate format; TXT is preferred.");
         loadCoordsBinItem.addActionListener(e -> loadCoordsBinary());
-        JMenuItem saveCoordsItem = new JMenuItem("Save coordinates (TXT)");
+        saveCoordsItem = new JMenuItem("Save coordinates (TXT)");
         saveCoordsItem.addActionListener(e -> saveCoordsTxt());
         JMenuItem exitItem = new JMenuItem("Exit");
         exitItem.addActionListener(e -> dispose());
@@ -71,9 +85,9 @@ public class GraphApp extends JFrame {
         fileMenu.addSeparator();
         fileMenu.add(exitItem);
 
-        JMenuItem forceItem = new JMenuItem("Force-directed layout");
+        forceItem = new JMenuItem("Force-directed layout");
         forceItem.addActionListener(e -> runCLayout(1, "Force-directed layout"));
-        JMenuItem tutteItem = new JMenuItem("Barycentric Tutte-style Layout");
+        tutteItem = new JMenuItem("Barycentric Tutte-style Layout");
         tutteItem.addActionListener(e -> runCLayout(2, "Barycentric Tutte-style Layout"));
         layoutMenu.add(forceItem);
         layoutMenu.add(tutteItem);
@@ -100,15 +114,14 @@ public class GraphApp extends JFrame {
 
         JButton loadGraphButton = new JButton("Load graph");
         loadGraphButton.addActionListener(e -> loadGraphTxt());
-        JButton loadTxtButton = new JButton("Load coordinates TXT");
+        loadTxtButton = new JButton("Load coordinates TXT");
+        loadTxtButton.setToolTipText("Can be selected before a graph; it will be applied after graph loading.");
         loadTxtButton.addActionListener(e -> loadCoordsTxt());
-        JButton loadBinButton = new JButton("Load coordinates BIN");
-        loadBinButton.addActionListener(e -> loadCoordsBinary());
-        JButton forceButton = new JButton("Force-directed");
+        forceButton = new JButton("Force-directed");
         forceButton.addActionListener(e -> runCLayout(1, "Force-directed layout"));
-        JButton tutteButton = new JButton("Barycentric Tutte");
+        tutteButton = new JButton("Barycentric Tutte");
         tutteButton.addActionListener(e -> runCLayout(2, "Barycentric Tutte-style Layout"));
-        JButton saveButton = new JButton("Save coordinates");
+        saveButton = new JButton("Save coordinates");
         saveButton.addActionListener(e -> saveCoordsTxt());
         JButton resetButton = new JButton("Reset view");
         resetButton.addActionListener(e -> graphPanel.resetView());
@@ -120,7 +133,6 @@ public class GraphApp extends JFrame {
 
         toolbar.add(loadGraphButton);
         toolbar.add(loadTxtButton);
-        toolbar.add(loadBinButton);
         toolbar.add(new JSeparator(JSeparator.VERTICAL));
         toolbar.add(forceButton);
         toolbar.add(tutteButton);
@@ -148,11 +160,19 @@ public class GraphApp extends JFrame {
             currentGraphFile = file;
             coordinateStatus = "Coordinates not loaded";
             algorithmStatus = "No algorithm run";
-            graphPanel.repaint();
-            updateStatus("Loaded graph TXT.");
+            graphPanel.clearInteraction();
+            setGraphActionsEnabled(true);
+            boolean appliedPending = applyPendingCoordinates();
+            if (!appliedPending) {
+                graphPanel.fitGraphToView();
+                graphPanel.repaint();
+                updateStatus("Loaded graph TXT.");
+            }
         } catch (IOException ex) {
+            clearGraphStateAfterFailedLoad();
             showError("File error", ex.getMessage());
         } catch (IllegalArgumentException ex) {
+            clearGraphStateAfterFailedLoad();
             showError("Invalid graph file", ex.getMessage());
         }
     }
@@ -161,32 +181,26 @@ public class GraphApp extends JFrame {
         JFileChooser chooser = new JFileChooser();
         if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
 
-        try {
-            GraphReader.loadCoordsTxt(chooser.getSelectedFile(), graph);
-            coordinateStatus = "TXT coordinates loaded";
-            graphPanel.repaint();
-            updateStatus("Loaded coordinate TXT.");
-        } catch (IOException ex) {
-            showError("File error", ex.getMessage());
-        } catch (IllegalArgumentException ex) {
-            showError("Invalid coordinate file", ex.getMessage());
+        File file = chooser.getSelectedFile();
+        if (graph.nodes.isEmpty()) {
+            rememberPendingCoordinates(file, false);
+            return;
         }
+
+        loadCoordinateFile(file, false, "Loaded coordinate TXT.");
     }
 
     private void loadCoordsBinary() {
         JFileChooser chooser = new JFileChooser();
         if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
 
-        try {
-            GraphReader.loadCoordsBinary(chooser.getSelectedFile(), graph);
-            coordinateStatus = "BIN coordinates loaded";
-            graphPanel.repaint();
-            updateStatus("Loaded binary coordinates.");
-        } catch (IOException ex) {
-            showError("File error", ex.getMessage());
-        } catch (IllegalArgumentException ex) {
-            showError("Invalid binary coordinate file", ex.getMessage());
+        File file = chooser.getSelectedFile();
+        if (graph.nodes.isEmpty()) {
+            rememberPendingCoordinates(file, true);
+            return;
         }
+
+        loadCoordinateFile(file, true, "Loaded binary coordinates.");
     }
 
     private void saveCoordsTxt() {
@@ -245,6 +259,7 @@ public class GraphApp extends JFrame {
             GraphReader.loadCoordsTxt(generatedCoords.toFile(), graph);
             coordinateStatus = "Generated by " + algorithmName;
             algorithmStatus = algorithmName + " finished";
+            graphPanel.fitGraphToView();
             graphPanel.repaint();
             updateStatus(algorithmName + " finished.");
         } catch (IOException ex) {
@@ -292,6 +307,73 @@ public class GraphApp extends JFrame {
         if (!stdout.isEmpty()) message += "stdout:\n" + stdout + "\n";
         if (!stderr.isEmpty()) message += "stderr:\n" + stderr;
         return message.trim().isEmpty() ? "The C program exited with an error." : message.trim();
+    }
+
+    private void setGraphActionsEnabled(boolean enabled) {
+        saveCoordsItem.setEnabled(enabled);
+        forceItem.setEnabled(enabled);
+        tutteItem.setEnabled(enabled);
+        saveButton.setEnabled(enabled);
+        forceButton.setEnabled(enabled);
+        tutteButton.setEnabled(enabled);
+    }
+
+    private void rememberPendingCoordinates(File file, boolean binary) {
+        pendingCoordinateFile = file;
+        pendingCoordinateBinary = binary;
+        coordinateStatus = (binary ? "BIN" : "TXT") + " coordinate file selected. Load a graph to apply coordinates.";
+        updateStatus("Coordinate file selected.");
+    }
+
+    private boolean applyPendingCoordinates() {
+        if (pendingCoordinateFile == null) return false;
+
+        boolean applied = loadCoordinateFile(
+                pendingCoordinateFile,
+                pendingCoordinateBinary,
+                "Loaded graph TXT and applied pending coordinates.");
+        if (applied) {
+            pendingCoordinateFile = null;
+        } else {
+            coordinateStatus = "Pending coordinate file did not match this graph.";
+            updateStatus("Loaded graph TXT.");
+        }
+        return applied;
+    }
+
+    private boolean loadCoordinateFile(File file, boolean binary, String successAction) {
+        try {
+            if (binary) {
+                GraphReader.loadCoordsBinary(file, graph);
+                coordinateStatus = "BIN coordinates loaded (optional/platform-dependent)";
+            } else {
+                GraphReader.loadCoordsTxt(file, graph);
+                coordinateStatus = "TXT coordinates loaded";
+            }
+            graphPanel.fitGraphToView();
+            graphPanel.repaint();
+            updateStatus(successAction);
+            pendingCoordinateFile = null;
+            return true;
+        } catch (IOException ex) {
+            showError("File error", ex.getMessage());
+        } catch (IllegalArgumentException ex) {
+            showError(binary ? "Invalid binary coordinate file" : "Invalid coordinate file", ex.getMessage());
+        }
+        return false;
+    }
+
+    private void clearGraphStateAfterFailedLoad() {
+        graph.clear();
+        currentGraphFile = null;
+        coordinateStatus = pendingCoordinateFile == null
+                ? "No coordinates loaded"
+                : (pendingCoordinateBinary ? "BIN" : "TXT") + " coordinate file selected. Load a graph to apply coordinates.";
+        algorithmStatus = "No algorithm run";
+        graphPanel.clearInteraction();
+        setGraphActionsEnabled(false);
+        graphPanel.repaint();
+        updateStatus("Graph was not loaded.");
     }
 
     private void updateStatus(String action) {

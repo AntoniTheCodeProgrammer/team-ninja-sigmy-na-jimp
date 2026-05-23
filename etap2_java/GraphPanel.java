@@ -12,7 +12,11 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseMotionAdapter;
 
 public class GraphPanel extends JPanel {
-    private static final int NODE_RADIUS = 10;
+    private static final int NODE_RADIUS_SCREEN = 4;
+    private static final int HIT_RADIUS_SCREEN = 10;
+    private static final int LABEL_FONT_SCREEN = 12;
+    private static final int WEIGHT_FONT_SCREEN = 11;
+    private static final float EDGE_STROKE_SCREEN = 1.0f;
 
     private final Graph graph;
     private double scale = 1.0;
@@ -34,7 +38,7 @@ public class GraphPanel extends JPanel {
             double beforeX = screenToWorldX(e.getX());
             double beforeY = screenToWorldY(e.getY());
             double factor = e.getWheelRotation() < 0 ? 1.1 : 1.0 / 1.1;
-            scale = Math.max(0.2, Math.min(5.0, scale * factor));
+            scale = Math.max(0.05, Math.min(20.0, scale * factor));
             offsetX = e.getX() / scale - beforeX;
             offsetY = e.getY() / scale - beforeY;
             repaint();
@@ -86,10 +90,49 @@ public class GraphPanel extends JPanel {
     }
 
     public void resetView() {
-        scale = 1.0;
-        offsetX = 0.0;
-        offsetY = 0.0;
+        fitGraphToView();
+    }
+
+    public void fitGraphToView() {
+        if (graph.nodes.isEmpty() || getWidth() <= 0 || getHeight() <= 0) {
+            scale = 1.0;
+            offsetX = 0.0;
+            offsetY = 0.0;
+            repaint();
+            return;
+        }
+
+        double minX = Double.POSITIVE_INFINITY;
+        double maxX = Double.NEGATIVE_INFINITY;
+        double minY = Double.POSITIVE_INFINITY;
+        double maxY = Double.NEGATIVE_INFINITY;
+
+        for (Graph.Node node : graph.nodes.values()) {
+            minX = Math.min(minX, node.x);
+            maxX = Math.max(maxX, node.x);
+            minY = Math.min(minY, node.y);
+            maxY = Math.max(maxY, node.y);
+        }
+
+        double graphWidth = Math.max(1.0, maxX - minX);
+        double graphHeight = Math.max(1.0, maxY - minY);
+        double margin = 60.0;
+        double availableWidth = Math.max(1.0, getWidth() - 2.0 * margin);
+        double availableHeight = Math.max(1.0, getHeight() - 2.0 * margin);
+
+        scale = Math.max(0.05, Math.min(20.0, Math.min(availableWidth / graphWidth, availableHeight / graphHeight)));
+
+        double centerX = (minX + maxX) / 2.0;
+        double centerY = (minY + maxY) / 2.0;
+        offsetX = getWidth() / (2.0 * scale) - centerX;
+        offsetY = getHeight() / (2.0 * scale) - centerY;
+        clearInteraction();
         repaint();
+    }
+
+    public void clearInteraction() {
+        draggedNode = null;
+        panning = false;
     }
 
     double screenToWorldX(int screenX) {
@@ -109,14 +152,10 @@ public class GraphPanel extends JPanel {
     }
 
     private Graph.Node findNodeAt(int screenX, int screenY) {
-        double worldX = screenToWorldX(screenX);
-        double worldY = screenToWorldY(screenY);
-        double hitRadius = NODE_RADIUS + 4.0 / scale;
-
         for (Graph.Node node : graph.nodes.values()) {
-            double dx = worldX - node.x;
-            double dy = worldY - node.y;
-            if (dx * dx + dy * dy <= hitRadius * hitRadius) {
+            double dx = screenX - worldToScreenX(node.x);
+            double dy = screenY - worldToScreenY(node.y);
+            if (dx * dx + dy * dy <= HIT_RADIUS_SCREEN * HIT_RADIUS_SCREEN) {
                 return node;
             }
         }
@@ -129,50 +168,51 @@ public class GraphPanel extends JPanel {
         Graphics2D g2d = (Graphics2D) g.create();
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
-        // Graph coordinates are transformed by the current zoom and pan settings.
-        g2d.scale(scale, scale);
-        g2d.translate(offsetX, offsetY);
-
+        // Draw in screen coordinates so zoom affects positions, not node/text sizes.
         drawEdges(g2d);
         drawNodes(g2d);
         g2d.dispose();
     }
 
     private void drawEdges(Graphics2D g2d) {
-        g2d.setStroke(new BasicStroke((float) (1.4 / scale)));
+        g2d.setStroke(new BasicStroke(EDGE_STROKE_SCREEN));
         g2d.setColor(new Color(120, 120, 120));
+        g2d.setFont(g2d.getFont().deriveFont((float) WEIGHT_FONT_SCREEN));
 
         for (Graph.Edge edge : graph.edges) {
-            int x1 = (int) Math.round(edge.source.x);
-            int y1 = (int) Math.round(edge.source.y);
-            int x2 = (int) Math.round(edge.target.x);
-            int y2 = (int) Math.round(edge.target.y);
+            int x1 = worldToScreenX(edge.source.x);
+            int y1 = worldToScreenY(edge.source.y);
+            int x2 = worldToScreenX(edge.target.x);
+            int y2 = worldToScreenY(edge.target.y);
             g2d.drawLine(x1, y1, x2, y2);
 
             if (showWeights) {
-                g2d.setColor(new Color(150, 55, 45));
-                g2d.drawString(String.valueOf(edge.weight), (x1 + x2) / 2 + 4, (y1 + y2) / 2 - 4);
+                g2d.setColor(new Color(120, 70, 55));
+                g2d.drawString(String.valueOf(edge.weight), (x1 + x2) / 2 + 5, (y1 + y2) / 2 - 3);
                 g2d.setColor(new Color(120, 120, 120));
             }
         }
     }
 
     private void drawNodes(Graphics2D g2d) {
+        g2d.setFont(g2d.getFont().deriveFont((float) LABEL_FONT_SCREEN));
         FontMetrics metrics = g2d.getFontMetrics();
 
         for (Graph.Node node : graph.nodes.values()) {
-            int x = (int) Math.round(node.x);
-            int y = (int) Math.round(node.y);
+            int x = worldToScreenX(node.x);
+            int y = worldToScreenY(node.y);
 
             g2d.setColor(new Color(70, 130, 210));
-            g2d.fillOval(x - NODE_RADIUS, y - NODE_RADIUS, NODE_RADIUS * 2, NODE_RADIUS * 2);
+            g2d.fillOval(x - NODE_RADIUS_SCREEN, y - NODE_RADIUS_SCREEN,
+                    NODE_RADIUS_SCREEN * 2, NODE_RADIUS_SCREEN * 2);
             g2d.setColor(new Color(30, 70, 130));
-            g2d.drawOval(x - NODE_RADIUS, y - NODE_RADIUS, NODE_RADIUS * 2, NODE_RADIUS * 2);
+            g2d.drawOval(x - NODE_RADIUS_SCREEN, y - NODE_RADIUS_SCREEN,
+                    NODE_RADIUS_SCREEN * 2, NODE_RADIUS_SCREEN * 2);
 
             if (showLabels) {
                 int labelWidth = metrics.stringWidth(node.id);
                 g2d.setColor(new Color(30, 30, 30));
-                g2d.drawString(node.id, x - labelWidth / 2, y - NODE_RADIUS - 4);
+                g2d.drawString(node.id, x - labelWidth / 2, y - NODE_RADIUS_SCREEN - 5);
             }
         }
     }
