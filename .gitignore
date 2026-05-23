@@ -5,3 +5,4 @@ venv
 *.png
 build/
 .class
+.DS_Store
