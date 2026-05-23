@@ -1,8 +1,8 @@
 package etap2_java;
 
-import javax.swing.*;
 import java.awt.*;
 import java.io.File;
+import javax.swing.*;
 
 public class GraphApp extends JFrame {
     private Graph graph = new Graph();
@@ -45,8 +45,7 @@ public class GraphApp extends JFrame {
         JComboBox<String> algoBox = new JComboBox<>(algorithms);
         JButton applyBtn = new JButton("Zastosuj Algorytm");
         applyBtn.addActionListener(e -> {
-            LayoutAlgorithm algo = algoBox.getSelectedIndex() == 0 ? 
-                                   new CircularLayout() : new ForceDirectedLayout();
+            LayoutAlgorithm algo = algoBox.getSelectedIndex() == 0 ?  new CircularLayout() : new ForceDirectedLayout();
             algo.applyLayout(graph, graphPanel.getWidth(), graphPanel.getHeight());
             graphPanel.repaint();
         });

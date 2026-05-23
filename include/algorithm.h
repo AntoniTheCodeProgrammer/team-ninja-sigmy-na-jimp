@@ -6,6 +6,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-void algorithm(Point *points, Edge *edges, int point_count, int edge_count);
+int algorithm(Point *points, Edge *edges, int point_count, int edge_count, int algorithm_id);
 
 #endif

@@ -1,8 +1,9 @@
+package etap2_java;
+
 import java.util.HashMap;
 import java.util.Map;
 
 public class ForceDirectedLayout implements LayoutAlgorithm {
-
     @Override
     public void applyLayout(Graph graph, int width, int height) {
         if (graph.nodes.isEmpty()) return;

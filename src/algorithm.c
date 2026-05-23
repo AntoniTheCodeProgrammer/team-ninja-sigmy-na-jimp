@@ -1,81 +1,241 @@
 #include "../include/algorithm.h"
 
-void algorithm(Point *points, Edge *edges, int point_count, int edge_count) {
-    // Siła zmiany
-    double temperature = 1.0;
-    Point *velocities = malloc(sizeof(Point) * point_count);
+#define CENTER_X 50.0
+#define CENTER_Y 50.0
+#define OUTER_RADIUS 40.0
+#define PI 3.14159265358979323846
 
-    // losowe rozmieszczenie punktów
-    for (int i = 0; i < point_count; i++) {
-        points[i].position.x = (double)rand() / RAND_MAX * 100;
-        points[i].position.y = (double)rand() / RAND_MAX * 100;
+static int valid_edge(Edge edge, int point_count) {
+    return edge.vertex_a >= 0 && edge.vertex_a < point_count &&
+           edge.vertex_b >= 0 && edge.vertex_b < point_count &&
+           edge.vertex_a != edge.vertex_b;
+}
+
+static int force_directed_layout(Point *points, Edge *edges, int point_count, int edge_count) {
+    double temperature = 1.0;
+    Point *velocity = malloc(sizeof(Point) * point_count);
+
+    if (velocity == NULL) {
+        fprintf(stderr, "Cannot allocate memory for force-directed layout.\n");
+        return 1;
     }
 
-    // iteracje
+    // Algorithm 1: the original simple force-directed layout.
+    for (int i = 0; i < point_count; i++) {
+        points[i].position.x = (double)rand() / RAND_MAX * 100.0;
+        points[i].position.y = (double)rand() / RAND_MAX * 100.0;
+    }
+
     for (int iter = 0; iter < 100; iter++) {
-        // zerowanie prędkości
         for (int i = 0; i < point_count; i++) {
-            velocities[i].position.x = 0;
-            velocities[i].position.y = 0;
+            velocity[i].position.x = 0.0;
+            velocity[i].position.y = 0.0;
         }
 
-        // siły odpychania
         for (int i = 0; i < point_count; i++) {
             for (int j = 0; j < point_count; j++) {
                 if (i == j) continue;
 
                 double dx = points[i].position.x - points[j].position.x;
                 double dy = points[i].position.y - points[j].position.y;
-                // odległość ponktow od siebie
                 double distance = sqrt(dx * dx + dy * dy);
                 if (distance == 0.0) distance = 0.0001;
 
-                // siła odpychania
                 double force = 10.0 / distance;
-
-                // zmiana wektora siły
-                velocities[i].position.x += force * dx / distance;
-                velocities[i].position.y += force * dy / distance;
+                velocity[i].position.x += force * dx / distance;
+                velocity[i].position.y += force * dy / distance;
             }
         }
 
-        // siły przyciągania
         for (int i = 0; i < edge_count; i++) {
-            double dx = points[edges[i].vertex_a].position.x - points[edges[i].vertex_b].position.x;
-            double dy = points[edges[i].vertex_a].position.y -
-                        points[edges[i].vertex_b].position.y;
+            if (!valid_edge(edges[i], point_count)) continue;
 
-            // odległość ponktow od siebie
+            int a = edges[i].vertex_a;
+            int b = edges[i].vertex_b;
+            double dx = points[a].position.x - points[b].position.x;
+            double dy = points[a].position.y - points[b].position.y;
             double distance = sqrt(dx * dx + dy * dy);
             if (distance == 0.0) distance = 0.0001;
 
-            // siła przyciągania
             double force = (distance - edges[i].weight) * -0.1;
-
-            // zmiana wektora siły
-            velocities[edges[i].vertex_a].position.x += force * dx / distance;
-            velocities[edges[i].vertex_a].position.y += force * dy / distance;
-            velocities[edges[i].vertex_b].position.x -= force * dx / distance;
-            velocities[edges[i].vertex_b].position.y -= force * dy / distance;
+            velocity[a].position.x += force * dx / distance;
+            velocity[a].position.y += force * dy / distance;
+            velocity[b].position.x -= force * dx / distance;
+            velocity[b].position.y -= force * dy / distance;
         }
 
-        // aktualizacja pozycji punktów
         for (int i = 0; i < point_count; i++) {
-            // prędkość punktu
-            float v = sqrt(velocities[i].position.x * velocities[i].position.x + velocities[i].position.y * velocities[i].position.y); 
-          
-            // ograniczenie prędkości
-            if (v > temperature) {
-                velocities[i].position.x = velocities[i].position.x / v * temperature;
-                velocities[i].position.y = velocities[i].position.y / v * temperature;
+            double speed = sqrt(velocity[i].position.x * velocity[i].position.x +
+                                velocity[i].position.y * velocity[i].position.y);
+
+            if (speed > temperature) {
+                velocity[i].position.x = velocity[i].position.x / speed * temperature;
+                velocity[i].position.y = velocity[i].position.y / speed * temperature;
             }
-            
-            // aktualizacja pozycji punktu
-            points[i].position.x += velocities[i].position.x;
-            points[i].position.y += velocities[i].position.y;
+
+            points[i].position.x += velocity[i].position.x;
+            points[i].position.y += velocity[i].position.y;
         }
 
-        // zmniejszanie siły zmiany
         temperature *= 0.95;
     }
+
+    free(velocity);
+    return 0;
+}
+
+static int fill_degrees(Edge *edges, int point_count, int edge_count, int *degree, int *active_count) {
+    int valid_edges = 0;
+
+    for (int i = 0; i < edge_count; i++) {
+        if (!valid_edge(edges[i], point_count)) continue;
+
+        degree[edges[i].vertex_a]++;
+        degree[edges[i].vertex_b]++;
+        valid_edges++;
+    }
+
+    for (int i = 0; i < point_count; i++) {
+        if (degree[i] > 0) (*active_count)++;
+    }
+
+    return valid_edges;
+}
+
+static int choose_boundary_vertices(int *degree, int point_count, int active_count, int *fixed) {
+    int boundary_count = active_count < 3 ? active_count : 3;
+    int chosen = 0;
+
+    for (int i = 0; i < point_count && chosen < boundary_count; i++) {
+        if (degree[i] > 0) {
+            fixed[i] = 1;
+            chosen++;
+        }
+    }
+
+    return boundary_count;
+}
+
+static void place_boundary(Point *points, int point_count, int *fixed, int boundary_count) {
+    int placed = 0;
+
+    if (boundary_count == 0) return;
+
+    // Algorithm 2 fixes only selected boundary vertices on a convex outer polygon.
+    for (int i = 0; i < point_count; i++) {
+        if (!fixed[i]) continue;
+
+        double angle = 2.0 * PI * placed / boundary_count;
+        points[i].position.x = CENTER_X + OUTER_RADIUS * cos(angle);
+        points[i].position.y = CENTER_Y + OUTER_RADIUS * sin(angle);
+        placed++;
+    }
+}
+
+static void place_isolated_vertices(Point *points, int point_count, int *degree) {
+    int isolated = 0;
+
+    for (int i = 0; i < point_count; i++) {
+        if (degree[i] != 0) continue;
+
+        points[i].position.x = 10.0 + (isolated % 8) * 10.0;
+        points[i].position.y = 95.0 + (isolated / 8) * 10.0;
+        isolated++;
+    }
+
+    if (isolated > 0) {
+        fprintf(stderr, "Planar-friendly layout: %d isolated vertex/vertices placed separately.\n", isolated);
+    }
+}
+
+static int barycentric_layout(Point *points, Edge *edges, int point_count, int edge_count) {
+    int *degree = calloc(point_count, sizeof(int));
+    int *fixed = calloc(point_count, sizeof(int));
+    double *sum_x = calloc(point_count, sizeof(double));
+    double *sum_y = calloc(point_count, sizeof(double));
+    int active_count = 0;
+
+    if (degree == NULL || fixed == NULL || sum_x == NULL || sum_y == NULL) {
+        fprintf(stderr, "Cannot allocate memory for planar-friendly layout.\n");
+        free(degree);
+        free(fixed);
+        free(sum_x);
+        free(sum_y);
+        return 1;
+    }
+
+    int valid_edges = fill_degrees(edges, point_count, edge_count, degree, &active_count);
+
+    fprintf(stderr,
+            "Planar-friendly layout: simplified barycentric method, not a guaranteed planar embedding.\n");
+
+    // This Euler check can only detect some definitely non-planar simple graphs.
+    if (active_count >= 3 && valid_edges > 3 * active_count - 6) {
+        fprintf(stderr,
+                "Warning: m > 3n - 6, so a simple version of this graph cannot be planar.\n");
+    }
+    if (active_count > 0 && valid_edges < active_count - 1) {
+        fprintf(stderr,
+                "Warning: graph may be disconnected; the layout works best on one component.\n");
+    }
+
+    int boundary_count = choose_boundary_vertices(degree, point_count, active_count, fixed);
+    for (int i = 0; i < point_count; i++) {
+        points[i].position.x = CENTER_X + ((i % 5) - 2) * 3.0;
+        points[i].position.y = CENTER_Y + (((i / 5) % 5) - 2) * 3.0;
+    }
+    place_boundary(points, point_count, fixed, boundary_count);
+
+    // Non-boundary vertices repeatedly move toward the average position of neighbors.
+    for (int iter = 0; iter < 300; iter++) {
+        for (int i = 0; i < point_count; i++) {
+            sum_x[i] = 0.0;
+            sum_y[i] = 0.0;
+        }
+
+        for (int i = 0; i < edge_count; i++) {
+            if (!valid_edge(edges[i], point_count)) continue;
+
+            int a = edges[i].vertex_a;
+            int b = edges[i].vertex_b;
+
+            sum_x[a] += points[b].position.x;
+            sum_y[a] += points[b].position.y;
+
+            sum_x[b] += points[a].position.x;
+            sum_y[b] += points[a].position.y;
+        }
+
+        for (int i = 0; i < point_count; i++) {
+            if (fixed[i] || degree[i] == 0) continue;
+
+            points[i].position.x = sum_x[i] / degree[i];
+            points[i].position.y = sum_y[i] / degree[i];
+        }
+    }
+
+    place_isolated_vertices(points, point_count, degree);
+
+    free(degree);
+    free(fixed);
+    free(sum_x);
+    free(sum_y);
+    return 0;
+}
+
+int algorithm(Point *points, Edge *edges, int point_count, int edge_count, int algorithm_id) {
+    if (points == NULL || edges == NULL || point_count <= 0) {
+        fprintf(stderr, "Algorithm input is invalid.\n");
+        return 1;
+    }
+
+    if (algorithm_id == 1) {
+        return force_directed_layout(points, edges, point_count, edge_count);
+    }
+    if (algorithm_id == 2) {
+        return barycentric_layout(points, edges, point_count, edge_count);
+    }
+
+    fprintf(stderr, "Unknown algorithm id: %d\n", algorithm_id);
+    return 1;
 }
