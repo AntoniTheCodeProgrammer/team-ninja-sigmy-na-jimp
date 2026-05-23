@@ -2,24 +2,16 @@ CC = gcc
 CFLAGS = -Wall -Wextra -Iinclude
 LDFLAGS = -lm
 
-SRC_DIR = src
-OBJ_DIR = build
-INC_DIR = include
-
-SRCS = $(wildcard $(SRC_DIR)/*.c)
-OBJS = $(patsubst $(SRC_DIR)/%.c, $(OBJ_DIR)/%.o, $(SRCS))
 TARGET = program
+SRCS = src/main.c src/import.c src/algorithm.c src/extraction.c
+HEADERS = include/struct.h include/import.h include/algorithm.h include/extraction.h
 
 all: $(TARGET)
 
-$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
-
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	@mkdir -p $(OBJ_DIR)
-	$(CC) $(CFLAGS) -c $< -o $@
+$(TARGET): $(SRCS) $(HEADERS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(SRCS) $(LDFLAGS)
 
 clean:
-	rm -rf $(OBJ_DIR) $(TARGET) *.o
+	rm -f $(TARGET) $(TARGET).exe *.o
 
 .PHONY: all clean
