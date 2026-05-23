@@ -8,7 +8,6 @@ Najważniejsze funkcje:
 
 - wczytywanie grafu z pliku TXT,
 - wczytywanie współrzędnych z TXT,
-- opcjonalne wczytywanie współrzędnych BIN zgodnych z formatem C,
 - zapisywanie aktualnych współrzędnych do TXT,
 - uruchamianie algorytmów zewnętrznego programu C,
 - wyświetlanie grafu w komponencie Swing,
@@ -22,7 +21,6 @@ Ograniczenia:
 
 - Java nie wyznacza układu grafu samodzielnie,
 - program C musi być zbudowany przed uruchomieniem algorytmów z GUI,
-- format BIN współrzędnych jest zależny od platformy,
 - Java nie obsługuje binarnego wejścia grafu,
 - uproszczony algorytm Barycentric Tutte-style po stronie C jest inspirowany rysowaniem planarnym, ale nie gwarantuje braku przecięć dla każdego grafu.
 
