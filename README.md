@@ -2,6 +2,8 @@
 
 Student project for calculating and visualizing graph vertex coordinates.
 
+docs: https://docs.google.com/document/d/13AEUVEHptZfyam7YQsp_-H12sAjNgtQraDFNYTf3fv4/edit?tab=t.0
+
 The project has two main parts:
 
 - **C command-line program** - reads a graph, runs a selected layout algorithm, and writes vertex coordinates.
