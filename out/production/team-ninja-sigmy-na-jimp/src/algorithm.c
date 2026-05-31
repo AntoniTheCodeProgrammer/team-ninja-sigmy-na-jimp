@@ -29,7 +29,7 @@ static int valid_edge(Edge edge, int point_count) {
 // Używana do estetycznego rozmieszczania grafów poprzez symulację sił fizycznych
 // (odpychanie wierzchołków i przyciąganie przez krawędzie).
 static int force_directed_layout(Point *points, Edge *edges, int point_count, int edge_count, FILE *iter_file) {
-    double temperature = 1.0; // Początkowa "temperatura" kontrolująca maksymalną prędkość punktów
+    double temperature = 25.0; // Początkowa "temperatura" kontrolująca maksymalną prędkość punktów
     Point *velocity = malloc(sizeof(Point) * point_count); // Tablica prędkości wierzchołków
 
     if (velocity == NULL) {
@@ -44,7 +44,7 @@ static int force_directed_layout(Point *points, Edge *edges, int point_count, in
         points[i].position.y = (double)rand() / RAND_MAX * 100.0;
     }
 
-    for (int iter = 0; iter < 100; iter++) {
+    for (int iter = 0; iter < 400; iter++) {
         for (int i = 0; i < point_count; i++) {
             velocity[i].position.x = 0.0;
             velocity[i].position.y = 0.0;
@@ -104,7 +104,7 @@ static int force_directed_layout(Point *points, Edge *edges, int point_count, in
             points[i].position.y += velocity[i].position.y;
         }
 
-        temperature *= 0.95; // Stopniowe "chłodzenie" (Simulated Annealing) - zmniejszanie temperatury z każdą iteracją
+        temperature *= 0.985; // Stopniowe "chłodzenie" (Simulated Annealing) - zmniejszanie temperatury z każdą iteracją
 
 
         // ZAPIS ITERACJI DO PLIKU
