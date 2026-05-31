@@ -24,6 +24,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
+import java.io.BufferedReader;
+import java.io.FileReader;
 
 public class GraphApp extends JFrame {
     private final Graph graph = new Graph();
@@ -38,6 +42,7 @@ public class GraphApp extends JFrame {
     private JButton forceButton;
     private JButton tutteButton;
     private JButton saveButton;
+    private JButton animateButton;
     private File currentGraphFile;
     private File pendingCoordinateFile;
     private boolean pendingCoordinateBinary;
@@ -112,6 +117,8 @@ public class GraphApp extends JFrame {
         JPanel toolbar = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 6));
         toolbar.setBorder(BorderFactory.createEmptyBorder(4, 6, 4, 6));
 
+
+        // Guziki
         JButton loadGraphButton = new JButton("Load graph");
         loadGraphButton.addActionListener(e -> loadGraphTxt());
         loadTxtButton = new JButton("Load coordinates TXT");
@@ -121,6 +128,8 @@ public class GraphApp extends JFrame {
         forceButton.addActionListener(e -> runCLayout(1, "Force-directed layout"));
         tutteButton = new JButton("Barycentric Tutte");
         tutteButton.addActionListener(e -> runCLayout(2, "Barycentric Tutte-style Layout"));
+        animateButton = new JButton("Play Animation");
+        animateButton.addActionListener(e -> playAnimation());
         saveButton = new JButton("Save coordinates");
         saveButton.addActionListener(e -> saveCoordsTxt());
         JButton resetButton = new JButton("Reset view");
@@ -136,6 +145,7 @@ public class GraphApp extends JFrame {
         toolbar.add(new JSeparator(JSeparator.VERTICAL));
         toolbar.add(forceButton);
         toolbar.add(tutteButton);
+        toolbar.add(animateButton);
         toolbar.add(new JSeparator(JSeparator.VERTICAL));
         toolbar.add(saveButton);
         toolbar.add(resetButton);
@@ -316,6 +326,9 @@ public class GraphApp extends JFrame {
         saveButton.setEnabled(enabled);
         forceButton.setEnabled(enabled);
         tutteButton.setEnabled(enabled);
+        if (animateButton != null) {
+            animateButton.setEnabled(enabled);
+        }
     }
 
     private void rememberPendingCoordinates(File file, boolean binary) {
@@ -387,5 +400,109 @@ public class GraphApp extends JFrame {
 
     private void showError(String title, String message) {
         JOptionPane.showMessageDialog(this, message, title, JOptionPane.ERROR_MESSAGE);
+    }
+
+    //Klasy do animacji Animation
+    static class VertexUpdate {
+        String id;
+        double x, y;
+        VertexUpdate(String id, double x, double y) {
+            this.id = id;
+            this.x = x;
+            this.y = y;
+        }
+    }
+
+    static class Frame {
+        List<VertexUpdate> updates = new ArrayList<>();
+    }
+
+    private List<Frame> loadFrames(String filepath) throws IOException {
+        List<Frame> frames = new ArrayList<>();
+        try (BufferedReader br = new BufferedReader(new FileReader(filepath))) {
+            String line;
+            Frame currentFrame = null;
+            while ((line = br.readLine()) != null) {
+                line = line.trim();
+                if (line.equals("---STEP---")) {
+                    currentFrame = new Frame();
+                    frames.add(currentFrame);
+                    continue;
+                }
+                if (line.startsWith("V ") && currentFrame != null) {
+                    String[] parts = line.split("\\s+");
+                    if (parts.length >= 4) {
+                        try {
+                            currentFrame.updates.add(new VertexUpdate(
+                                parts[1],
+                                Double.parseDouble(parts[2]),
+                                Double.parseDouble(parts[3])
+                            ));
+                        } catch (NumberFormatException e) {
+                            // ignore invalid lines
+                        }
+                    }
+                }
+            }
+        }
+        return frames;
+    }
+
+    private void playAnimation() {
+        if (graph.nodes.isEmpty()) {
+            showError("Error", "No graph loaded.");
+            return;
+        }
+        Path projectRoot;
+        try {
+            projectRoot = findProjectRoot();
+        } catch (IllegalArgumentException e) {
+            showError("Error", e.getMessage());
+            return;
+        }
+        File iterationsFile = projectRoot.resolve("output/iterations.txt").toFile();
+        if (!iterationsFile.exists()) {
+            showError("File missing", "output/iterations.txt not found. Run a layout algorithm first.");
+            return;
+        }
+
+        List<Frame> frames;
+        try {
+            frames = loadFrames(iterationsFile.getAbsolutePath());
+        } catch (Exception ex) {
+            showError("Parse error", "Failed to load frames: " + ex.getMessage());
+            return;
+        }
+
+        if (frames.isEmpty()) {
+            showError("Empty file", "No frames found in iterations.txt");
+            return;
+        }
+
+        setGraphActionsEnabled(false);
+        animateButton.setEnabled(false);
+
+        new Thread(() -> {
+            for (Frame frame : frames) {
+                for (VertexUpdate update : frame.updates) {
+                    Graph.Node node = graph.nodes.get(update.id);
+                    if (node != null) {
+                        node.x = update.x;
+                        node.y = update.y;
+                    }
+                }
+                graphPanel.repaint();
+                try {
+                    Thread.sleep(50); // wait 50ms per frame
+                } catch (InterruptedException e) {
+                    break;
+                }
+            }
+            
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                setGraphActionsEnabled(true);
+                animateButton.setEnabled(true);
+            });
+        }).start();
     }
 }

@@ -13,8 +13,9 @@ void save_iteration(FILE *file, Point *points, int num_nodes) {
     for (int i = 0; i < num_nodes; i++) {
         fprintf(file, "V %d %f %f\n", i, points[i].position.x, points[i].position.y);
     }
-    fflush(file); 
-}
+    fflush(file);
+
+    }
 
 // Funkcja sprawdzająca czy krawędź jest poprawna.
 // Zwraca 1 (prawda), jeśli wierzchołki mieszczą się w zakresie i nie są tym samym wierzchołkiem.

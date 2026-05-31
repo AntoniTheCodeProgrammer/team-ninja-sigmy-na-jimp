@@ -6,6 +6,17 @@
 #define INNER_RADIUS 24.0
 #define PI 3.14159265358979323846
 
+// ZAPIS ITERACJI
+void save_iteration(FILE *file, Point *points, int num_nodes) {
+    if (file == NULL) return;
+    fprintf(file, "---STEP---\n");
+    for (int i = 0; i < num_nodes; i++) {
+        fprintf(file, "V %d %f %f\n", i, points[i].position.x, points[i].position.y);
+    }
+    fflush(file);
+
+    }
+
 // Funkcja sprawdzająca czy krawędź jest poprawna.
 // Zwraca 1 (prawda), jeśli wierzchołki mieszczą się w zakresie i nie są tym samym wierzchołkiem.
 static int valid_edge(Edge edge, int point_count) {
@@ -17,7 +28,7 @@ static int valid_edge(Edge edge, int point_count) {
 // Implementacja algorytmu siłowego (Force-directed layout).
 // Używana do estetycznego rozmieszczania grafów poprzez symulację sił fizycznych
 // (odpychanie wierzchołków i przyciąganie przez krawędzie).
-static int force_directed_layout(Point *points, Edge *edges, int point_count, int edge_count) {
+static int force_directed_layout(Point *points, Edge *edges, int point_count, int edge_count, FILE *iter_file) {
     double temperature = 1.0; // Początkowa "temperatura" kontrolująca maksymalną prędkość punktów
     Point *velocity = malloc(sizeof(Point) * point_count); // Tablica prędkości wierzchołków
 
@@ -94,6 +105,10 @@ static int force_directed_layout(Point *points, Edge *edges, int point_count, in
         }
 
         temperature *= 0.95; // Stopniowe "chłodzenie" (Simulated Annealing) - zmniejszanie temperatury z każdą iteracją
+
+
+        // ZAPIS ITERACJI DO PLIKU
+        save_iteration(iter_file, points, point_count);
     }
 
     free(velocity);
@@ -202,7 +217,7 @@ static void place_isolated_vertices(Point *points, int point_count, int *degree)
 // Rozmieszcza wierzchołki w środku ciężkości ich sąsiadów.
 // Daje dobre, estetyczne wyniki dla grafów zbliżonych do planarnych, 
 // choć w tej uproszczonej wersji nie gwarantuje braku przecięć krawędzi.
-static int barycentric_layout(Point *points, Edge *edges, int point_count, int edge_count) {
+static int barycentric_layout(Point *points, Edge *edges, int point_count, int edge_count, FILE *iter_file) {
     int *degree = calloc(point_count, sizeof(int));
     int *fixed = calloc(point_count, sizeof(int));
     double *sum_x = calloc(point_count, sizeof(double));
@@ -276,6 +291,7 @@ static int barycentric_layout(Point *points, Edge *edges, int point_count, int e
             points[i].position.x = points[i].position.x * 0.4 + avg_x * 0.6;
             points[i].position.y = points[i].position.y * 0.4 + avg_y * 0.6;
         }
+        save_iteration(iter_file, points, point_count);
     }
 
     place_isolated_vertices(points, point_count, degree);
@@ -296,15 +312,26 @@ int algorithm(Point *points, Edge *edges, int point_count, int edge_count, int a
         return 1; // 1 to w Unixie typowy kod błędu
     }
 
-    // Wybór odpowiedniego algorytmu na podstawie podanego ID (1 lub 2)
-    if (algorithm_id == 1) {
-        return force_directed_layout(points, edges, point_count, edge_count);
-    }
-    if (algorithm_id == 2) {
-        return barycentric_layout(points, edges, point_count, edge_count);
+    FILE *iter_file = fopen("output/iterations.txt", "w");
+    if (iter_file == NULL) {
+        fprintf(stderr, "Nie mozna otworzyc pliku output/iterations.txt do zapisu iteracji.\n");
     }
 
-    // Obsługa przypadku podania nieistniejącego ID
-    fprintf(stderr, "Nieznany identyfikator algorytmu: %d\n", algorithm_id);
-    return 1;
+    int result = 1;
+
+    // Wybór odpowiedniego algorytmu na podstawie podanego ID (1 lub 2)
+    if (algorithm_id == 1) {
+        result = force_directed_layout(points, edges, point_count, edge_count, iter_file);
+    } else if (algorithm_id == 2) {
+        result = barycentric_layout(points, edges, point_count, edge_count, iter_file);
+    } else {
+        // Obsługa przypadku podania nieistniejącego ID
+        fprintf(stderr, "Nieznany identyfikator algorytmu: %d\n", algorithm_id);
+    }
+
+    if (iter_file != NULL) {
+        fclose(iter_file);
+    }
+
+    return result;
 }
