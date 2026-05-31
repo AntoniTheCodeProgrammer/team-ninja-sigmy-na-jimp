@@ -162,6 +162,10 @@ public class GraphApp extends JFrame {
 
     private void loadGraphTxt() {
         JFileChooser chooser = new JFileChooser();
+        try {
+            chooser.setCurrentDirectory(findProjectRoot().resolve("input").toFile());
+        } catch (Exception ignored) {}
+
         if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) return;
 
         File file = chooser.getSelectedFile();
