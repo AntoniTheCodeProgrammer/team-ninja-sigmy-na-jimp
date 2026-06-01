@@ -4,5 +4,5 @@ program
 venv
 *.png
 build/
-.class
+*.class
 .DS_Store
