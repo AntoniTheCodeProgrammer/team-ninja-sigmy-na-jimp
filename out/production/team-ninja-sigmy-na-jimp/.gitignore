@@ -1,8 +1,0 @@
-*.out
-*.o
-program
-venv
-*.png
-build/
-.class
-.DS_Store
